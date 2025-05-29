@@ -43,6 +43,7 @@ return new class extends Migration
                 'Zaghouan',
             ]);
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');//The user_id is a foreign key to the users table, The onDelete('cascade') ensures that when a user or domain is deleted, the associated candidate record will be deleted as well.
+            
         });
     }
 

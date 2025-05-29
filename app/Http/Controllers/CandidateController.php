@@ -2,18 +2,80 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Models\Offre;
 use App\Models\Candidate;
 use Illuminate\Http\Request;
+use App\Models\CandidatureOffre;
+use Illuminate\Support\Facades\DB;
 
 class CandidateController extends Controller
 {
-    //fonction pour afficher un candidat selon son id : 
+
+    //fonction pour afficher la liste des candidats : 
+    public function ListeCandidate(){
+        $candidate = Candidate::all();
+        return response()->json($candidate);
+    }
+
+    //fonction pour afficher la liste des candidats valide : 
+    public function ListeCandidateValide(){
+        
+        $candidate_valide= Candidate::whereHas('user', function ($query) {
+            $query->where('statut', 'valide');
+        })->with('user')->get();
+
+        return response()->json($candidate_valide);
+    }
+
+    //fonction pour afficher la liste des candidats non valide :
+
+    public function ListeCandidateNonValide(){
+        
+        $candidate_non_valide= Candidate::whereHas('user', function ($query) {
+            $query->where('statut', 'non valide');
+        })->with('user')->get();
+
+        return response()->json($candidate_non_valide);
+    }
+
+    //fonction pour afficher la liste des candidats en attente de validation :
+
+    public function ListeCandidateEnattente(){
+        
+        $candidate_en_attente= Candidate::whereHas('user', function ($query) {
+            $query->where('statut','en attente de validation');
+        })->with('user')->get();
+        return response()->json($candidate_en_attente);
+    }
+
+    //fonction pour afficher un candidat selon son id : (partie admin)
     public function AfficherCandidate($id){
         $candidate = Candidate::with('user')->find($id); //the with('user') here is to show also the candidate related fields in the users table 
         if(!$candidate){
             return response()->json(['message'=>'candidate not found']);
         }
         return response()->json($candidate);
+    }
+    //fonction pour consulter son profil : 
+        public function consulterProfil()
+    {
+        $user = auth()->user();
+        $candidate = Candidate::where('user_id', $user->id)->first();
+
+        if (!$candidate) {
+            return response()->json(['message' => 'Profil candidat non trouvé'], 404);
+        }
+
+        return response()->json([
+        'nom' => $user->last_name,
+        'prenom' => $user->first_name,
+        'email' =>$user->email,
+        'statut' =>$user->statut,
+        'civility' => $candidate->civility,
+        'birth_date' => $candidate->birth_date,
+        'governorate' => $candidate->Governorate,
+    ]);
     }
 
     //fonction pour update un candidat selon son id : 
@@ -36,6 +98,7 @@ class CandidateController extends Controller
                 'email',
                 'password' // hash it if changed
             ]));
+
         }
 
         return response()->json([
@@ -68,4 +131,69 @@ class CandidateController extends Controller
         ]);
         
     }
+    //postuler a un offre : 
+    public function postuler(Request $request)
+    {
+        $user = auth()->user();
+        $candidate = Candidate::where('user_id', $user->id)->first();
+        
+
+        if (!$candidate) {
+            return response()->json(['message' => 'Candidat non trouvé'], 404);
+        }
+
+        // Vérifie si déjà postulé
+        $existe = CandidatureOffre::where('candidate_id', $candidate->id)
+                    ->where('offre_id', $request->offre_id)
+                    ->first();
+
+        if ($existe) {
+            return response()->json(['message' => 'Déjà postulé à cette offre'], 400);
+        }
+
+        try {
+            CandidatureOffre::create([
+                'candidate_id' => $candidate->id,
+                'offre_id' => $request->offre_id,
+                'status' => 'en attente'
+            ]);
+        }catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur serveur',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+        return response()->json(['message' => 'Postulation enregistrée']);
+    }
+
+    //voir postulation : 
+    public function voirPostulations()
+    {
+        $user = auth()->user();
+        $candidate = Candidate::where('user_id', $user->id)->first();
+
+        $postulations = DB::table('candidate_offre')
+                        ->join('offres', 'offres.id', '=', 'candidate_offre.offre_id')
+                        ->where('candidatue_offre.candidate_id', $candidate->id)
+                        ->select('offres.*', 'candidate_offre.statut')
+                        ->get();
+
+        return response()->json($postulations);
+    }
+
+    //supprimer postulation : 
+    public function supprimerPostulation(Request $request)
+    {
+        $user = auth()->user();
+        $candidate = Candidate::where('user_id', $user->id)->first();
+
+        DB::table('candidate_offre')
+            ->where('candidate_id', $candidate->id)
+            ->where('offre_id', $request->offre_id)
+            ->delete();
+
+        return response()->json(['message' => 'Postulation supprimée avec succès']);
+    }
+
+
 }

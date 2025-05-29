@@ -20,8 +20,9 @@ return new class extends Migration
             $table->string('logo')->nullable();// Allows storing NULL if no file is uploaded.
             $table->string('entreprise_description');
             $table->string('unique_identifier');
-            $table->foreignId('domaine_id')->constrained('domaines');
+            $table->string('domaine');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+           
             $table->timestamps();
         });
     }

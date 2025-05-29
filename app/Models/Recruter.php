@@ -18,12 +18,19 @@ class Recruter extends Model
         'logo',
         'entreprise_description',
         'unique_identifier',
-        'domaine_id',
-        'user_id'
+        'domaine',
+        'user_id',
+        
     ];
+    
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function offres()
+    {
+        return $this->hasMany(Offre::class);
     }
 }

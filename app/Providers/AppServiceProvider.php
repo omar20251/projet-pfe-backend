@@ -1,23 +1,20 @@
 <?php
-
+// app/Providers/AppServiceProvider.php - Enregistrer le service
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Services\GroqService;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
+    public function register()
     {
-        //
+        $this->app->singleton(GroqService::class, function ($app) {
+            return new GroqService();
+        });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
+    public function boot()
     {
         //
     }

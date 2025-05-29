@@ -34,6 +34,8 @@ class RegisterController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password), // Hash password
             'role' => $request->role,
+            'statut' => $request->statut ?? 'en attente de validation',
+            
         ]);
         
         if ($request->role == 2) { // recruiter
@@ -46,7 +48,7 @@ class RegisterController extends Controller
                 'logo' => $request->logo ?? null,
                 'entreprise_description' => $request->entreprise_description,
                 'unique_identifier' => $request->unique_identifier,
-                'domaine_id' => $request->domaine_id,
+                'domaine' => $request->domaine,
             ]);
         }
 
@@ -64,6 +66,9 @@ class RegisterController extends Controller
         // Send the email verification notification
         $user->sendEmailVerificationNotification();
 
-        return response()->json(['message' => 'User registered successfully.Please check your email to verify your account.', 'user' => $user], 201);
+        return response()->json(['message' => 'User registered successfully.Please check your email to verify your account.',
+        'user' => $user,
+        'domaine' => $request->domaine
+        ], 201);
     }
 }

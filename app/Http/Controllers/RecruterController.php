@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Domaine;
 use App\Models\Recruter;
+use App\Models\User;
+
 use Illuminate\Http\Request;
 use App\Http\Resources\Recruter\DomaineListRessource;
 
@@ -14,13 +16,52 @@ class RecruterController extends Controller
         return DomaineListRessource::collection($domaines); //returns list of domaines
     }
 
+    //fonction pour afficher la liste des recruiters : 
+    public function ListeRecruiter(){
+        $recruiter = Recruter::all();
+        return response()->json($recruiter);
+    }
+
+    //fonction pour afficher la liste des recruiters valide : 
+    public function ListeRecruiterValide(){
+        
+        $recruiter_valide= Recruter::whereHas('user', function ($query) {
+            $query->where('statut', 'valide');
+        })->with('user')->get();
+
+        return response()->json($recruiter_valide);
+    }
+
+    //fonction pour afficher la liste des recruiters non valide :
+
+    public function ListeRecruiterNonValide(){
+        
+        $recruiter_non_valide= Recruter::whereHas('user', function ($query) {
+            $query->where('statut', 'non valide');
+        })->with('user')->get();
+
+        return response()->json($recruiter_non_valide);
+    }
+
+    //fonction pour afficher la liste des recruiters en attente de validation :
+
+    public function ListeRecruiterEnattente(){
+        
+        $recruiter_en_attente= Recruter::whereHas('user', function ($query) {
+            $query->where('statut','en attente de validation');
+        })->with('user')->get();
+        return response()->json($recruiter_en_attente);
+    }
+
     //fonction pour afficher un recruteur selon son id : 
     public function AfficherRecruiter($id){
         $recruiter = Recruter::with('user')->find($id);
         if(!$recruiter){
             return response()->json(['message'=>'recruiteur not found']);
         }
-        return response()->json($recruiter);
+        return response()->json(
+            $recruiter->makeHidden(['id', 'user_id','role','created_at','updated_at','statut','email_verified_at','remember_token',''])
+        );
     }
 
     //fonction pour update un recruiter selon son id : 
@@ -29,6 +70,8 @@ class RecruterController extends Controller
         if(!$recruiter){
             return response()->json(['message'=>'recruiteur not found']);
         }
+
+    
         // Update the recruiter fields
         $recruiter->update($request->only([
             'entreprise_name',
@@ -80,5 +123,24 @@ class RecruterController extends Controller
         ]);
         
     }
+    //supprimer son profil
+    public function DeleteProfil(){
+    $user = auth()->user(); // Get the logged-in user
+    if (!$user) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+    // Find the recruiter by the user_id
+    $recruiter = Recruter::where('user_id', $user->id)->first();
+    if (!$recruiter) {
+        return response()->json(['error' => 'Recruiter profile not found'], 404);
+    }
+    // Delete user and recruiter
+    $user->delete();
+    $recruiter->delete();
+
+    return response()->json([
+        'message' => 'Recruiter and related user deleted successfully',
+    ]);
+}
     
 }
